@@ -4,12 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Article;
 use App\Models\Comment;
+use App\Events\ArticleEvent;
+
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
-use App\Events\ArticleEbent;
 
 class ArticleController extends Controller
 {
@@ -18,11 +19,13 @@ class ArticleController extends Controller
      */
     public function index()
     {
-        $currentPage = request('page') ? request('page') : 1;
-        $articles = Cache::remember('articles'.$currentPage, 3000, function(){
-            return Article::latest()->paginate(6);        
+        $page = request('page') ? request('page') : 1;
+
+        $articles = Cache::remember('articles'.$page, 3000, function() {
+            return Article::latest()->with('user')->paginate(6);
         });
-        return view('article.index', ['articles'=>$articles]);
+
+        return view('article.index', ['articles' => $articles]);
     }
 
     /**
@@ -30,7 +33,6 @@ class ArticleController extends Controller
      */
     public function create()
     {
-        Gate::authorize('create', [self::class]);
         return view('article.create');
     }
 
@@ -39,43 +41,47 @@ class ArticleController extends Controller
      */
     public function store(Request $request)
     {
-        $keys = DB::table('cache')
-                ->select('key')
-                ->whereRaw('`key` GLOB :key', [':key' => 'articles*[0-9]'])->get();
-        foreach($keys as $key){
-            Cache::forget($key->key);
-        }
-        // Log::alert($keys);
         Gate::authorize('create', [self::class]);
+
         $request->validate([
-            'date' => 'required',
             'title' => 'required|min:6',
-            'text' => 'required'
+            'text' => 'required',
+            'date' => 'required',
         ]);
 
-        $article = new Article;
-        $article->date = $request->date;
-        $article->title = $request->title;
-        $article->shortDesc = $request->shortDesc;
-        $article->text = $request->text;
-        $article->user_id = 1;
-        $res = $article->save();
-        if($res) ArticleEbent::dispatch($article);
+        $article = new Article([
+            'user_id' => auth()->id(),
+            'title' => $request->title,
+            'short_desc' => $request->short_desc,
+            'text' => $request->text,
+            'date' => $request->date,
+        ]);
+
+        if($article->save()) {
+            DB::table('cache')->where('key', 'LIKE', 'articles%')->delete();
+
+            ArticleEvent::dispatch($article);
+        }
+
         return redirect()->route('article.index');
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Article $article)
+    public function show(Request $request, Article $article)
     {
-        if (isset($_GET['id_notify'])){
-            auth()->user()->notifications->where('id', $_GET['id_notify'])->first()->markAsRead();
+        $id_notify = $request->input('id_notify');
+
+        if ($id_notify){
+            auth()->user()->notifications->where('id', $id_notify)->first()->markAsRead();
         }
-        $comments = Cache::rememberForever('article_comment'.$article->id, function()use($article){
-            return Comment::where('article_id', $article->id)->where('accept', true)->latest()->get();
+
+        $comments = Cache::rememberForever('article_comment'.$article->id, function() use($article) {
+            return $article->comments()->where('accept', true)->latest()->get();
         });
-        return view('article.show', ['article'=>$article, 'comments'=>$comments]);
+
+        return view('article.show', ['article' => $article, 'comments' => $comments]);
     }
 
     /**
@@ -83,7 +89,8 @@ class ArticleController extends Controller
      */
     public function edit(Article $article)
     {
-        Gate::authorize('create', [self::class]);
+        Gate::authorize('article', $article);
+
         return view('article.edit', ['article'=>$article]);
     }
 
@@ -92,13 +99,8 @@ class ArticleController extends Controller
      */
     public function update(Request $request, Article $article)
     {
-        $keys = DB::table('cache')
-        ->select('key')
-        ->whereRaw('`key` GLOB :key', [':key' => 'articles*[0-9]'])->get();
-        foreach($keys as $key){
-            Cache::forget($key->key);
-        }
-        Gate::authorize('create', [self::class]);
+        Gate::authorize('article', $article);
+
         $request->validate([
             'date' => 'required',
             'title' => 'required|min:6',
@@ -106,11 +108,14 @@ class ArticleController extends Controller
         ]);
         $article->date = $request->date;
         $article->title = $request->title;
-        $article->shortDesc = $request->shortDesc;
+        $article->short_desc = $request->short_desc;
         $article->text = $request->text;
-        $article->user_id = 1;
-        $article->save();
-        return redirect()->route('article.show', ['article'=>$article->id]);
+
+        if($article->save()) {
+            DB::table('cache')->where('key', 'LIKE', 'articles%')->delete();
+        }
+
+        return redirect()->route('article.show', ['article' => $article->id]);
     }
 
     /**
@@ -118,9 +123,14 @@ class ArticleController extends Controller
      */
     public function destroy(Article $article)
     {
-        Cache::flush();
-        Gate::authorize('create', [self::class]);
-        $article->delete();
+        Gate::authorize('article', $article);
+
+        if($article->comments()->delete() && $article->delete()) {
+            Cache::forget('comments');
+            Cache::forget('article_comment'.$article->id);
+            DB::table('cache')->where('key', 'LIKE', 'articles%')->delete();
+        }
+
         return redirect()->route('article.index');
     }
 }

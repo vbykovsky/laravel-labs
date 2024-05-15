@@ -3,7 +3,7 @@
 <div class="card mt-3">
   <div class="card-body">
     <h5 class="card-title">{{$article->title}}</h5>
-    <h6 class="card-subtitle mb-2 text-muted">{{$article->shortDesc}}</h6>
+    <h6 class="card-subtitle mb-2 text-muted">{{$article->short_desc}}</h6>
     <p class="card-text">{{$article->text}}</p>
     @can('create')
     <div class="d-flex">
@@ -60,8 +60,8 @@
     <p class="card-text">{{$comment->desc}}</p>
     <div class="d-flex">
     @can('comment', $comment)
-       <a class="btn btn-secondary mr-3" href="/comment/edit/{{$comment->id}}" class="card-link">Edit comment</a>
-       <a class="btn btn-danger mr-3" href="/comment/delete/{{$comment->id}}" class="card-link">Delete comment</a>
+       <a class="btn btn-secondary mr-3" href="/comment/{{$comment->id}}/edit" class="card-link">Edit comment</a>
+       <a class="btn btn-danger mr-3" href="/comment/{{$comment->id}}/delete" class="card-link">Delete comment</a>
     @endcan
     </div>    
   </div>

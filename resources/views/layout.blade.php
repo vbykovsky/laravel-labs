@@ -19,7 +19,7 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
     <header>
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
-  <a class="navbar-brand" href="/main">Navbar</a>
+  <a class="navbar-brand" href="/article">Navbar</a>
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
   </button>
@@ -37,17 +37,6 @@
         <a class="nav-link" href="/comment/index">New Comments</a>
       </li>
       @endcan
-      @auth
-      <li class="nav-item dropdown">
-        <a class="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-expanded="false">
-          Notify <span>{{auth()->user()->unreadNotifications()->count()}}</span>
-        </a> 
-        <div class="dropdown-menu">
-        @foreach(auth()->user()->unreadNotifications as $notify)
-          <a class="dropdown-item" href="{{route('article.show',['article'=>$notify->data['idArticle'], 'id_notify'=>$notify->id])}}">{{$notify->data['titleComment']}}</a>
-        @endforeach
-      </li>
-      @endauth
     </ul>
   
     <div class="form-inline my-2 my-lg-0">
@@ -56,6 +45,14 @@
       <a href="/signup" class="btn btn-outline-success my-2 my-sm-0">Sign Up</a>
     @endguest
     @auth
+      <a class="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-expanded="false">
+        Notify <span>{{auth()->user()->unreadNotifications()->count()}}</span>
+      </a> 
+      <div class="dropdown-menu dropdown-menu-right">
+        @foreach(auth()->user()->unreadNotifications as $notify)
+          <a class="dropdown-item" href="{{route('article.show',['article'=>$notify->data['idArticle'], 'id_notify'=>$notify->id])}}">{{$notify->data['titleComment']}}</a>
+        @endforeach
+      </div>
       <a href="/logout" class="btn btn-outline-success my-2 my-sm-0">Sign Out</a>
     @endauth
 </div>

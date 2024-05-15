@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->date('date');
             $table->string('title');
-            $table->string('shortDesc')->nullable();
+            $table->string('short_desc')->nullable();
             $table->string('text');
             $table->foreignId('user_id');
             $table->timestamps();

@@ -25,8 +25,8 @@
     <input type="text" class="form-control" id="title" name="title" value="{{$article->title}}">
   </div>
   <div class="form-group">
-    <label for="shortDesc">Shortdesc</label>
-    <input type="text" class="form-control" id="shortDesc" name="shortDesc" value="{{$article->shortDesc}}">
+    <label for="short_desc">Shortdesc</label>
+    <input type="text" class="form-control" id="short_desc" name="short_desc" value="{{$article->short_desc}}">
   </div>
   <div class="form-group">
     <label for="text">Text</label>

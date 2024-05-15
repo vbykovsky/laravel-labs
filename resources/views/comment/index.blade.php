@@ -15,8 +15,8 @@
     <tr>
       <th scope="row">{{$comment->title}}</th>
       <td>{{$comment->desc}}</td>
-      <td><a href="/article/{{$comment->article_id}}">{{$comment->article}}</a></td>
-      <td>{{$comment->name}}</td>
+      <td><a href="/article/{{$comment->article_id}}">{{$comment->article->title}}</a></td>
+      <td>{{$comment->user->name}}</td>
       <td>@if (!$comment->accept)
              <a class="btn btn-success" href="/comment/{{$comment->id}}/accept">Accept</a>
           @else

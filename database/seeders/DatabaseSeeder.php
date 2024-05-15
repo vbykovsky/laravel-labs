@@ -1,6 +1,8 @@
 <?php
 
 namespace Database\Seeders;
+
+use App\Models\User;
 use App\Models\Article;
 use App\Models\Comment;
 
@@ -16,12 +18,6 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(UserSeeder::class);
 
-        Article::factory(10)->has(Comment::factory(3))->create();
-        // \App\Models\User::factory(10)->create();
-
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        User::factory(10)->has(Article::factory(3)->hasComments(5))->create();
     }
 }

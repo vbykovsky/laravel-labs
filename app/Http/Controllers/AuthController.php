@@ -9,11 +9,11 @@ use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    function signin(){
-        return view('auth.registr');
+    function signup(){
+        return view('auth.signup');
     }
 
-    function registr(Request $request){
+    function create(Request $request){
         $request->validate([
             'name' => 'required',
             'email'=>'required|email|unique:App\Models\User',
@@ -23,36 +23,44 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email'=>$request->email,
+            'role' => 'READER',
             'password' => Hash::make($request->password),
         ]);
 
         $user->createToken('MyAppToken');
-        return redirect()->route('login');
+
+        return redirect()->route('signin.auth');
     }
 
-    function signup(){
-        return view('auth.signup');
+    function signin(){
+        return view('auth.signin');
     }
 
-    function login(Request $request){
+    function auth(Request $request){
         $credentials = $request->validate([
-                        'email'=>'required|email',
-                        'password'=>'required|min:6'
-                    ]);
-        if(Auth::attempt($credentials)){
-            $request->session()->regenerate();
-            return redirect()->intended('/article');
-        }
-        return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
-        ])->onlyInput('email');
+            'email'=>'required|email',
+            'password'=>'required|min:6'
+        ]);
 
+        if(!Auth::attempt($credentials)){
+            return back()
+                ->withErrors([
+                    'email' => 'The provided credentials do not match our records.',
+                ])
+                ->onlyInput('email');
+        }
+
+        $request->session()->regenerate();
+
+        return redirect()->intended('/article');
     }
 
     function logout(Request $request){
         Auth::logout();
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect()->route('article.index');
     }
 }

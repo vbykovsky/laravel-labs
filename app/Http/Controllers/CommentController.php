@@ -16,67 +16,106 @@ use App\Notifications\CommentNotify;
 
 class CommentController extends Controller
 {
-
     public function index(){
-        $comments = Cache::rememberForever('comments', function(){
-            return
-            DB::table('comments')
-                ->join('articles', 'articles.id', 'comments.article_id')
-                ->join('users', 'users.id', 'comments.user_id')
-                ->select('comments.*','articles.id as article_id', 'articles.title as article', 'users.name')
-                ->get();
+        $comments = Cache::remember('comments', 3000, function(){
+            return Comment::latest()->with('article')->with('user')->get();
         });
-        // Log::alert($comments);
+
         return view('comment.index', ['comments' => $comments]);
     }
 
     public function store(Request $request){
-        Cache::forget('comments');
+        $article = Article::findOrFail($request->article_id);
+
         $request->validate([
             'title'=>'required|min:5',
             'desc'=>'required'
         ]);
 
-        $article = Article::findOrFail($request->article_id);
+        $comment = new Comment([
+            'article_id' => $article->id,
+            'user_id' => auth()->id(),
+            'title' => $request->title,
+            'desc' => $request->desc,
+            'accept' => false,
+        ]);
 
-        $comment = new Comment;
-        $comment->title = $request->title;
-        $comment->desc = $request->desc;
-        $comment->user_id = auth()->id();
-        $comment->article_id = $request->article_id;
-        $res = $comment->save();
-        if ($res) {
+        if ($comment->save()) {
+            Cache::forget('comments');
+            Cache::forget('article_comment'.$article->id);
+
             VeryLongJob::dispatch($comment, $article);
         }
-        return redirect()->route('article.show', ['article'=>$request->article_id])->with(['res'=>$res]);
+
+        return redirect()->route('article.show', ['article'=>$request->article_id])->with(['res' => true]);
     }
 
     public function edit(Comment $comment){
-        Gate::authorize('comment', ['comment'=>$comment]);
-        return view('comment.update', ['comment'=>$comment]);
+        Gate::authorize('comment', $comment);
+
+        return view('comment.edit', ['comment' => $comment]);
     }
 
-    public function delete(Comment $comment){
-        Gate::authorize('comment',['comment'=>$comment]);
-        return redirect()->route('article.show', ['article'=>1]);
+    public function update(Request $request, Comment $comment){
+        Gate::authorize('comment', $comment);
+
+        $request->validate([
+            'title'=>'required|min:5',
+            'desc'=>'required',
+        ]);
+
+        $comment->title = $request->title;
+        $comment->desc = $request->desc;
+
+        $comment->load('article');
+
+        if($comment->save()) {
+            Cache::forget('comments');
+            Cache::forget('article_comment'.$comment->article->id);
+        }
+
+        return redirect(route('article.show', $comment->article->id));
+    }
+
+    public function destroy(Comment $comment){
+        Gate::authorize('comment', $comment);
+
+        $comment->load('article');
+
+        if($comment->delete()){
+            Cache::forget('comments');
+            Cache::forget('article_comment'.$comment->article->id);
+        }
+
+        return redirect()->route('article.show', ['article' => $comment->article->id]);
     }
 
     public function accept(Comment $comment){
-        Cache::forget('comments');
-        Cache::forget('article_comment'.$comment->article_id);
+        Gate::authorize('comment-moderation', $comment);
+
         $comment->accept = true;
-        $users = User::where('id', '!=', $comment->user_id)->get();
-        // Log::alert($users);
-        $res = $comment->save();
-        if ($res) Notification::send($users, new CommentNotify($comment->title, $comment->article_id));
+
+        if($comment->save()){
+            Cache::forget('comments');
+            Cache::forget('article_comment'.$comment->article_id);
+
+            $users = User::where('id', '!=', $comment->user_id)->get();
+            Notification::send($users, new CommentNotify($comment->title, $comment->article_id));
+        }
+
         return redirect()->route('comment.index');
     }
 
     public function reject(Comment $comment){
-        Cache::forget('comments');
-        Cache::forget('article_comment'.$comment->article_id);
+        Gate::authorize('comment-moderation', $comment);
+
         $comment->accept = false;
-        $comment->save();
+
+        if($comment->save()){
+            Cache::forget('comments');
+            Cache::forget('article_comment'.$comment->article_id);
+        }
+
         return redirect()->route('comment.index');
     }
 }

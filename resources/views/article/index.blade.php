@@ -7,6 +7,7 @@
       <th scope="col">Title</th>
       <th scope="col">ShortDesc</th>
       <th scope="col">Text</th>
+      <th scope="col">Author</th>
     </tr>
   </thead>
   <tbody>
@@ -14,8 +15,9 @@
     <tr>
       <th scope="row">{{$article->date}}</th>
       <td><a href="/article/{{$article->id}}">{{$article->title}}</a></td>
-      <td>{{$article->shortDesc}}</td>
+      <td>{{$article->short_desc}}</td>
       <td>{{$article->text}}</td>
+      <td>{{$article->user->name}}</td>
     </tr>
     @endforeach
   </tbody>
