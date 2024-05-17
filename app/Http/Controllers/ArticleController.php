@@ -25,6 +25,10 @@ class ArticleController extends Controller
             return Article::latest()->with('user')->paginate(6);
         });
 
+        if(request()->expectsJson()) {
+            return response()->json($articles);
+        }
+
         return view('article.index', ['articles' => $articles]);
     }
 
@@ -63,6 +67,10 @@ class ArticleController extends Controller
             ArticleEvent::dispatch($article);
         }
 
+        if(request()->expectsJson()) {
+            return response()->json($article);
+        }
+
         return redirect()->route('article.index');
     }
 
@@ -80,6 +88,10 @@ class ArticleController extends Controller
         $comments = Cache::rememberForever('article_comment'.$article->id, function() use($article) {
             return $article->comments()->where('accept', true)->latest()->get();
         });
+
+        if(request()->expectsJson()) {
+            return response()->json(['article' => $article, 'comments' => $comments]);
+        }
 
         return view('article.show', ['article' => $article, 'comments' => $comments]);
     }
@@ -115,6 +127,10 @@ class ArticleController extends Controller
             DB::table('cache')->where('key', 'LIKE', 'articles%')->delete();
         }
 
+        if(request()->expectsJson()) {
+            return response()->json($article);
+        }
+
         return redirect()->route('article.show', ['article' => $article->id]);
     }
 
@@ -129,6 +145,10 @@ class ArticleController extends Controller
             Cache::forget('comments');
             Cache::forget('article_comment'.$article->id);
             DB::table('cache')->where('key', 'LIKE', 'articles%')->delete();
+        }
+
+        if(request()->expectsJson()) {
+            return response()->json('destroy');
         }
 
         return redirect()->route('article.index');

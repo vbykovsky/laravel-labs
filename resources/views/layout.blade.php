@@ -34,7 +34,7 @@
         <a class="nav-link" href="/article/create">Create article</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="/comment/index">New Comments</a>
+        <a class="nav-link" href="/comment">New Comments</a>
       </li>
       @endcan
     </ul>

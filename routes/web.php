@@ -6,22 +6,14 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\CommentController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
-*/
+
 //article
-Route::resource('article', ArticleController::class)->middleware('auth:sanctum');
+Route::resource('/article', ArticleController::class)->middleware('auth:sanctum')->except(['show']);
+Route::get('article/{article}', [ArticleController::class, 'show'])->name('article.show')->middleware('auth:sanctum', 'stats');
 
 //comment
 Route::controller(CommentController::class)->group(function(){
-    Route::get('/comment/index', 'index')->middleware('auth:sanctum')->name('comment.index');
+    Route::get('/comment', 'index')->middleware('auth:sanctum')->name('comment.index');
 
     Route::post('/comment', 'store')->middleware('auth:sanctum')->name('comment.store');
 

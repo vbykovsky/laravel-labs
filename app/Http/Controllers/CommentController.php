@@ -21,6 +21,10 @@ class CommentController extends Controller
             return Comment::latest()->with('article')->with('user')->get();
         });
 
+        if(request()->expectsJson()) {
+            return response()->json($comments);
+        }
+
         return view('comment.index', ['comments' => $comments]);
     }
 
@@ -45,6 +49,10 @@ class CommentController extends Controller
             Cache::forget('article_comment'.$article->id);
 
             VeryLongJob::dispatch($comment, $article);
+        }
+
+        if(request()->expectsJson()) {
+            return response()->json($comment);
         }
 
         return redirect()->route('article.show', ['article'=>$request->article_id])->with(['res' => true]);
@@ -74,6 +82,10 @@ class CommentController extends Controller
             Cache::forget('article_comment'.$comment->article->id);
         }
 
+        if(request()->expectsJson()) {
+            return response()->json($comment);
+        }
+
         return redirect(route('article.show', $comment->article->id));
     }
 
@@ -82,12 +94,18 @@ class CommentController extends Controller
 
         $comment->load('article');
 
+        $articleId = $comment->article->id;
+
         if($comment->delete()){
             Cache::forget('comments');
             Cache::forget('article_comment'.$comment->article->id);
         }
 
-        return redirect()->route('article.show', ['article' => $comment->article->id]);
+        if(request()->expectsJson()) {
+            return response()->json('destroy');
+        }
+
+        return redirect()->route('article.show', ['article' => $articleId]);
     }
 
     public function accept(Comment $comment){
@@ -103,6 +121,10 @@ class CommentController extends Controller
             Notification::send($users, new CommentNotify($comment->title, $comment->article_id));
         }
 
+        if(request()->expectsJson()) {
+            return response()->json($comment);
+        }
+
         return redirect()->route('comment.index');
     }
 
@@ -114,6 +136,10 @@ class CommentController extends Controller
         if($comment->save()){
             Cache::forget('comments');
             Cache::forget('article_comment'.$comment->article_id);
+        }
+
+        if(request()->expectsJson()) {
+            return response()->json($comment);
         }
 
         return redirect()->route('comment.index');
