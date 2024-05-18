@@ -141,7 +141,11 @@ class ArticleController extends Controller
     {
         Gate::authorize('article', $article);
 
-        if($article->comments()->delete() && $article->delete()) {
+        if($article->comments()->count()){
+            $article->comments()->delete();
+        }
+
+        if($article->delete()) {
             Cache::forget('comments');
             Cache::forget('article_comment'.$article->id);
             DB::table('cache')->where('key', 'LIKE', 'articles%')->delete();
